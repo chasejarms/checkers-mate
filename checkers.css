@@ -1,0 +1,83 @@
+html {
+    width: 100%;
+    height: 100%;
+}
+body {
+    width: 100%;
+    height: 100%;
+}
+h1 {
+    text-align: center;
+}
+#page {
+    width: 100%;
+    height: 100%;
+}
+.black {
+    background-color: black;
+}
+
+.white {
+    background-color: white;
+}
+.row {
+    width: 800px;
+    height: 100px;
+    display: inline-block;
+    margin: 0px;
+    padding: 0px;
+    float: left;
+}
+.box {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    margin: 0px;
+}
+.red-piece {
+    background-image: url(red.png);
+}
+.black-piece {
+    background-image: url(black.png);
+}
+.black-king-piece {
+    background-image: url(king-black.gif);
+}
+.red-king-piece {
+    background-image: url(king-red.gif);
+}
+.black-piece, .red-piece, .black-king-piece, .red-king-piece {
+    background-size: 90px 90px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+#red-side-left {
+    width: 200px;
+    min-height: 100px;
+}
+#black-side-right {
+    width: 200px;
+    min-height: 100px;
+}
+.main-content {
+    width: 100%;
+}
+#game-board-container {
+    border: black 1px solid;
+    display: block;
+    width: 800px;
+    height: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+#red-piece-prison, #black-piece-prison {
+    width: 200px;
+    min-height: 100px;
+    display: inline-block;
+}
+.available {
+    background-color: blue;
+}
+.clicked {
+    background-color: yellow;
+}
