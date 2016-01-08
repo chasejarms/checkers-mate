@@ -1,4 +1,8 @@
 var checkersArray = [];
+//this is just an example variable to get it set in my mind
+//started the multiple paths issue from the black piece because that's how it's set up
+var path = {};
+var toggleTimesCalled = 0;
 function setUp() {
     var checkersContainer = document.getElementById('game-board-container');
     for (var r = 0; r < 8; r++) {
@@ -60,44 +64,49 @@ function isEven(n) {
 }
 
 setUp();
-var turnToMove;
 
 sweetAlert ({
     title: "Who should start the game?",
-    text: "Choose black or red.",
     type: "info",
     showCancelButton: true,
     confirmButtonColor: "#DD6B55",
-    confirmButtonText: "Black",
-    cancelButtonText: "Red",
+    confirmButtonText: "Red",
+    cancelButtonText: "Black",
     closeOnConfirm: false,
-    closeOnCancel: false },
-    function(isConfirm) {
-    if (isConfirm) {
-        swal("Nice!", "Red will start the game.", "success");
-        turnToMove = 'black';
-    }
-    else {
-        swal('Sweet!', "Black will start the game.","success");
-        turnToMove = 'red';
-    }
+    closeOnCancel: false
+},
+function(isConfirm) {
+if (isConfirm) {
+    swal('Sweet!', "Red will start the game.","success");
+    turnToMove = 'red';
+}
+else {
+    swal("Nice!", "Black will start the game.", "success");
+    turnToMove = 'black';
+}
 })
 //consider removing the array of objects variable to deal with just the DOM
 function giveOptions(trigger) {
     var alreadyClicked = document.getElementsByClassName('clicked'); //we'll use alreadySelected and alreadyAvailable to remove the results from the last giveOptions function and to remove the corresponding event listeners -- only one thing selected at a time
-    var alreadyAvailable = document.getElementsByClassName('available'); //
+    var alreadyAvailable = isEven(toggleTimesCalled) ? document.getElementsByClassName('available') : document.getElementsByClassName('available-no-show');
     var pieceType = trigger.target.classList.contains('red-piece') || trigger.target.classList.contains('black-piece') ? 'normal' : 'king';
     clearThe('clicked');
     clearThe('available');
-    clearThe('red-prison-piece');
-    clearThe('black-prison-piece');
+    clearThe('available-no-show');
     clearThe('possible-jump');
+    path = {};
     var row = parseInt(trigger.target.id[0]);  //this gives the row of the item (useful to check the checkersArray.id)
     var column = parseInt(trigger.target.id[1]);  //this gives the column of the item (useful to check the checkersArray.id)
     var divInDOM = document.getElementById(trigger.target.id);
     divInDOM.classList.add('clicked'); //highlights the div background
     //these next lines of code should check just the immediate elements
     var color = divInDOM.classList.contains('red-piece') || divInDOM.classList.contains('red-king-piece') ? 'red' : 'black';
+    if (color !== turnToMove) {
+        var notTurn = color === 'red' ? 'black' : 'red';
+        clearThe('clicked');
+        sweetAlert('Oops...', 'It\'s currently ' + notTurn + '\'s turn.', "error");
+        return;
+    }
     if (pieceType === "king") {
         checkNext(color, row, column, "right", 0, 1, pieceType);
     }
@@ -133,6 +142,7 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
         var downTwoLeftTwo = document.getElementById((row + 2) + "" + (column - 2));
         var selectedDiv = document.getElementById(row + "" + column);
         var opposite = pieceColor === 'red' ? 'black' : 'red';
+        console.log(path);
         if (pieceType === 'normal') {
             if (direction === "right" && pieceColor === "red" && downOneRight !== null) {
                 if (hasBlackPiece(downOneRight)) { //if it contains the black piece
@@ -140,16 +150,25 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     return;
                 }
                 else if (!hasRedPiece(downOneRight) && timesCalled === 1) {
-                    downOneRight.classList.add('available');
+                    whichAvailable(downOneRight);
                     downOneRight.addEventListener('click', movePiece);
                 }
                 else if (!hasRedPiece(downOneRight) && isEven(timesCalled)) { // if it doesn't contain any piece
-                downOneRight.classList.add('available', 'possible-jump');
-                downOneRight.addEventListener('click', movePiece);
-                selectedDiv.classList.add('black-prison-piece');
-                checkNext('red', parseInt(downOneRight.id[0]), parseInt(downOneRight.id[1]), "right", 0, timesCalled + 1, "normal");
-                checkNext('red', parseInt(downOneRight.id[0]), parseInt(downOneRight.id[1]), "left", 0, timesCalled + 1, "normal");
-                return;
+                    downOneRight.classList.add('possible-jump');
+                    whichAvailable(downOneRight);
+                    downOneRight.addEventListener('click', movePiece);
+                    if (path[downOneRight.id] === undefined) {
+                        path[downOneRight.id] = {prev: upOneLeft.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[downOneRight.id]["prev2"] === undefined){
+                        path[downOneRight.id]["prev2"] = upOneLeft.id;
+                    }
+                    else {
+                        return;
+                    }
+                    checkNext('red', parseInt(downOneRight.id[0]), parseInt(downOneRight.id[1]), "right", 0, timesCalled + 1, "normal");
+                    checkNext('red', parseInt(downOneRight.id[0]), parseInt(downOneRight.id[1]), "left", 0, timesCalled + 1, "normal");
+                    return;
                 }
             }
             else if (direction === "right" && pieceColor === "black" && upOneRight !== null) { //going right and the piece is black
@@ -159,13 +178,22 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     return;
                 }
                 else if (!upOneRight.classList.contains('black-piece') && timesCalled === 1) {
-                    upOneRight.classList.add('available');
+                    whichAvailable(upOneRight);
                     upOneRight.addEventListener('click', movePiece);
                 }
                 else if (!hasBlackPiece(upOneRight) && isEven(timesCalled)) {
-                    upOneRight.classList.add('available', 'possible-jump');
+                    upOneRight.classList.add('possible-jump');
+                    whichAvailable(upOneRight);
                     upOneRight.addEventListener('click', movePiece);
-                    selectedDiv.classList.add('red-prison-piece');
+                    if (path[upOneRight.id] === undefined) {
+                        path[upOneRight.id] = {prev: downOneLeft.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[upOneRight.id]["prev2"] === undefined) {
+                        path[upOneRight.id]["prev2"] = downOneLeft.id;
+                    }
+                    else {
+                        return;
+                    }
                     checkNext('black', parseInt(upOneRight.id[0]), parseInt(upOneRight.id[1]), "right", 0, timesCalled + 1, "normal");
                     checkNext('black', parseInt(upOneRight.id[0]), parseInt(upOneRight.id[1]), "left", 0, timesCalled + 1, "normal");
                     //after it investigates to the first instance and find there is an opening
@@ -179,16 +207,25 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     return;
                 }
                 else if (!hasRedPiece(downOneLeft) && timesCalled === 1) {
-                    downOneLeft.classList.add('available');
+                    whichAvailable(downOneLeft);
                     downOneLeft.addEventListener('click', movePiece);
                 }
                 else if (!hasRedPiece(downOneLeft) && isEven(timesCalled)) { // if it doesn't contain any piece
-                downOneLeft.classList.add('available', 'possible-jump');
-                downOneLeft.addEventListener('click', movePiece);
-                selectedDiv.classList.add('black-prison-piece');
-                checkNext('red', parseInt(downOneLeft.id[0]), parseInt(downOneLeft.id[1]), "left", 0, timesCalled + 1, "normal");
-                checkNext('red', parseInt(downOneLeft.id[0]), parseInt(downOneLeft.id[1]), "right", 0, timesCalled + 1, "normal");
-                return;
+                    downOneLeft.classList.add('possible-jump');
+                    whichAvailable(downOneLeft);
+                    downOneLeft.addEventListener('click', movePiece);
+                    if (path[downOneLeft.id] === undefined) {
+                        path[downOneLeft.id] = {prev: upOneRight.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[downOneLeft.id]["prev2"] === undefined){
+                        path[downOneLeft.id]["prev2"] = upOneRight.id;
+                    }
+                    else {
+                        return;
+                    }
+                    checkNext('red', parseInt(downOneLeft.id[0]), parseInt(downOneLeft.id[1]), "left", 0, timesCalled + 1, "normal");
+                    checkNext('red', parseInt(downOneLeft.id[0]), parseInt(downOneLeft.id[1]), "right", 0, timesCalled + 1, "normal");
+                    return;
                 }
             }
             else if (direction === "left" && pieceColor === "black" && upOneLeft !== null) {
@@ -197,16 +234,25 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     return;
                 }
                 else if (!hasBlackPiece(upOneLeft) && timesCalled === 1) {
-                    upOneLeft.classList.add('available');
+                    whichAvailable(upOneLeft);
                     upOneLeft.addEventListener('click', movePiece);
                 }
                 else if (!hasBlackPiece(upOneLeft) && isEven(timesCalled)) { // if it doesn't contain any piece
-                upOneLeft.classList.add('available', 'possible-jump');
-                upOneLeft.addEventListener('click', movePiece);
-                selectedDiv.classList.add('red-prison-piece');
-                checkNext('black', parseInt(upOneLeft.id[0]), parseInt(upOneLeft.id[1]), "left", 0, timesCalled + 1, "normal");
-                checkNext('black', parseInt(upOneLeft.id[0]), parseInt(upOneLeft.id[1]), "right", 0, timesCalled + 1, "normal");
-                return;
+                    upOneLeft.classList.add('possible-jump');
+                    whichAvailable(upOneLeft);
+                    upOneLeft.addEventListener('click', movePiece);
+                    if (path[upOneLeft.id] === undefined) {
+                        path[upOneLeft.id] = {prev: downOneRight.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[upOneLeft.id]["prev2"] === undefined){
+                        path[upOneLeft.id]["prev2"] = downOneRight.id;
+                    }
+                    else {
+                        return;
+                    }
+                    checkNext('black', parseInt(upOneLeft.id[0]), parseInt(upOneLeft.id[1]), "left", 0, timesCalled + 1, "normal");
+                    checkNext('black', parseInt(upOneLeft.id[0]), parseInt(upOneLeft.id[1]), "right", 0, timesCalled + 1, "normal");
+                    return;
                 }
             }
             return; //escape from the function
@@ -217,14 +263,24 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     checkNext(pieceColor, parseInt(downOneRight.id[0]), parseInt(downOneRight.id[1]), "right", fail + 1, timesCalled + 1, "king", selectedDiv, downTwoRightTwo);
                 }
                 else if (!has(pieceColor)(downOneRight)&& timesCalled === 1) {
-                    downOneRight.classList.add('available');
+                    whichAvailable(downOneRight);
                     downOneRight.addEventListener('click', movePiece);
                 }
                 else if (!has(pieceColor)(downOneRight) && isEven(timesCalled)) { // if it doesn't contain any piece
-                downOneRight.classList.add('available', 'possible-jump');
-                downOneRight.addEventListener('click', movePiece);
-                selectedDiv.classList.add(opposite + '-prison-piece');
-                checkNext(pieceColor, parseInt(downOneRight.id[0]), parseInt(downOneRight.id[1]), "right", 0, timesCalled + 1, "king", selectedDiv);
+                    downOneRight.classList.add('possible-jump');
+                    whichAvailable(downOneRight);
+                    downOneRight.addEventListener('click', movePiece);
+                    selectedDiv.classList.add(opposite + '-prison-piece');
+                    if (path[downOneRight.id] === undefined) {
+                        path[downOneRight.id] = {prev: upOneLeft.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[downOneRight.id]["prev2"] === undefined){
+                        path[downOneRight.id]["prev2"] = upOneLeft.id;
+                    }
+                    else {
+                        return;
+                    }
+                    checkNext(pieceColor, parseInt(downOneRight.id[0]), parseInt(downOneRight.id[1]), "right", 0, timesCalled + 1, "king", selectedDiv);
                 }
             }
             if ((upOneRight !== null && avoidDir !== upOneRight  && onlyDir === undefined) || onlyDir === upOneRight && upOneRight !== null) { //going right and the piece is black
@@ -233,13 +289,23 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     checkNext(pieceColor, parseInt(upOneRight.id[0]), parseInt(upOneRight.id[1]), "right", fail + 1, timesCalled + 1, "king", selectedDiv, upTwoRightTwo);
                 }
                 else if (!has(pieceColor)(upOneRight) && timesCalled === 1) {
-                    upOneRight.classList.add('available');
+                    whichAvailable(upOneRight);
                     upOneRight.addEventListener('click', movePiece);
                 }
                 else if (!has(pieceColor)(upOneRight) && isEven(timesCalled)) {
-                    upOneRight.classList.add('available', 'possible-jump');
+                    upOneRight.classList.add('possible-jump');
+                    whichAvailable(upOneRight);
                     upOneRight.addEventListener('click', movePiece);
                     selectedDiv.classList.add(opposite + '-prison-piece');
+                    if (path[upOneRight.id] === undefined) {
+                        path[upOneRight.id] = {prev: downOneLeft.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[upOneRight.id]["prev2"] === undefined){
+                        path[upOneRight.id]["prev2"] = downOneLeft.id;
+                    }
+                    else {
+                        return;
+                    }
                     checkNext(pieceColor, parseInt(upOneRight.id[0]), parseInt(upOneRight.id[1]), "right", 0, timesCalled + 1, "king", selectedDiv);
                     //after it investigates to the first instance and find there is an opening
                 }
@@ -250,14 +316,24 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     checkNext(pieceColor, parseInt(downOneLeft.id[0]), parseInt(downOneLeft.id[1]), "left", fail + 1, timesCalled + 1, "king", selectedDiv, downTwoLeftTwo);
                 }
                 else if (!has(pieceColor)(downOneLeft) && timesCalled === 1) {
-                    downOneLeft.classList.add('available');
+                    whichAvailable(downOneLeft);
                     downOneLeft.addEventListener('click', movePiece);
                 }
                 else if (!has(pieceColor)(downOneLeft) && isEven(timesCalled)) { // if it doesn't contain any piece
-                downOneLeft.classList.add('available', 'possible-jump');
-                downOneLeft.addEventListener('click', movePiece);
-                selectedDiv.classList.add(opposite + '-prison-piece');
-                checkNext(pieceColor, parseInt(downOneLeft.id[0]), parseInt(downOneLeft.id[1]), "left", 0, timesCalled + 1, "king", selectedDiv);
+                    downOneLeft.classList.add('possible-jump');
+                    whichAvailable(downOneLeft);
+                    downOneLeft.addEventListener('click', movePiece);
+                    selectedDiv.classList.add(opposite + '-prison-piece');
+                    if (path[downOneLeft.id] === undefined) {
+                        path[downOneLeft.id] = {prev: upOneRight.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[downOneLeft.id]["prev2"] === undefined){
+                        path[downOneLeft.id]["prev2"] = upOneRight.id;
+                    }
+                    else {
+                        return;
+                    }
+                    checkNext(pieceColor, parseInt(downOneLeft.id[0]), parseInt(downOneLeft.id[1]), "left", 0, timesCalled + 1, "king", selectedDiv);
                 }
             }
             if ((upOneLeft !== null && avoidDir !== upOneLeft && onlyDir === undefined) || onlyDir === upOneLeft && upOneLeft !== null) {
@@ -265,14 +341,24 @@ function checkNext(pieceColor, row, column, direction, fail, timesCalled, pieceT
                     checkNext(pieceColor, parseInt(upOneLeft.id[0]), parseInt(upOneLeft.id[1]), "left", fail + 1, timesCalled + 1, "king", selectedDiv, upTwoLeftTwo);
                 }
                 else if (!has(pieceColor)(upOneLeft) && timesCalled === 1) {
-                    upOneLeft.classList.add('available');
+                    whichAvailable(upOneLeft);
                     upOneLeft.addEventListener('click', movePiece);
                 }
                 else if (!has(pieceColor)(upOneLeft) && isEven(timesCalled)) { // if it doesn't contain any piece
-                upOneLeft.classList.add('available', 'possible-jump');
-                upOneLeft.addEventListener('click', movePiece);
-                selectedDiv.classList.add(opposite + '-prison-piece');
-                checkNext(pieceColor, parseInt(upOneLeft.id[0]), parseInt(upOneLeft.id[1]), "left", 0, timesCalled + 1, "king", selectedDiv);
+                    upOneLeft.classList.add('possible-jump');
+                    whichAvailable(upOneLeft);
+                    upOneLeft.addEventListener('click', movePiece);
+                    selectedDiv.classList.add(opposite + '-prison-piece');
+                    if (path[upOneLeft.id] === undefined) {
+                        path[upOneLeft.id] = {prev: downOneRight.id, jumpedPiece: row + "" + column};
+                    }
+                    else if (path[upOneLeft.id]["prev2"] === undefined){
+                        path[upOneLeft.id]["prev2"] = downOneRight.id;
+                    }
+                    else {
+                        return;
+                    }
+                    checkNext(pieceColor, parseInt(upOneLeft.id[0]), parseInt(upOneLeft.id[1]), "left", 0, timesCalled + 1, "king", selectedDiv);
                 }
             }
             return; //escape from the function
@@ -284,7 +370,7 @@ function clearThe(className) {
     var arrayOfElements = document.getElementsByClassName(className);
     while (arrayOfElements.length > 0) {
         var element = arrayOfElements[0];
-        if (className === 'available' && element !== undefined) {
+        if ((className === 'available' || className === 'available-no-show') && element !== undefined) {
             element.removeEventListener('click', movePiece);
         }
         if (element !== undefined) {
@@ -313,51 +399,116 @@ function movePiece(trigger) {
         trigger.target.classList.add('red-king-piece');
         clicked.classList.remove('red-king-piece');
     }
-    inPrison(trigger.target);
+    inPrison(trigger.target.id, turnToMove);
     checkForKing();
     clearThe('available');
+    clearThe('available-no-show');
     clearThe('clicked');
     clearThe('possible-jump');
     clicked.removeEventListener('click', giveOptions);
     trigger.target.addEventListener('click', giveOptions);
+    turnToMove = turnToMove === 'black' ? 'red' : 'black';
 }
-
-function inPrison(triggerElement) {
-    prisonerDiv = document.getElementsByClassName('red-prison-piece').length > 0 ? document.getElementById('red-piece-prison') : document.getElementById('black-piece-prison');
-    var prisoners = prisonerDiv.id === 'red-piece-prison' ? document.getElementsByClassName('red-prison-piece') : document.getElementsByClassName('black-prison-piece');
-    if (triggerElement.classList.contains('possible-jump')) {
-        if (prisonerDiv.id === 'red-piece-prison') {
-            while (document.getElementsByClassName('red-prison-piece').length > 0) {
-                var newDiv = document.createElement('DIV'); //this creates a new div
-                if (prisoners[0].classList.contains('red-piece')) {
-                    newDiv.classList.add('red-piece', 'box', 'white'); //makes that div the right size with a piece
-                    prisoners[0].classList.remove('red-piece');
+//this one should only remove the desired path
+function inPrison(triggerID, turn) {
+    var triggerElem = document.getElementById(triggerID);
+    var clickedElem = document.getElementsByClassName('clicked')[0];
+    var multipleOptions = false;
+    var pieceType = triggerElem.classList.contains('red-piece') ? 'red-piece' : triggerElem.classList.contains('red-king-piece') ? 'red-king-piece' : triggerElem.classList.contains('black-piece') ? 'black-piece' : 'black-king-piece';
+    var pris = turn === "red" ? 'black-piece-prison' : 'red-piece-prison';
+    prisElement = document.getElementById(pris);
+    for (var prop in path) {
+        if (triggerID === prop) { //we found the starting spot
+            if (path[prop]["prev2"] !== undefined) {
+                multipleOptions = true;
+                var right = path[prop]["prev2"] > path[prop]["prev"] ? path[prop]["prev2"] : path[prop]["prev"];
+                var left = right === path[prop]["prev2"] ? path[prop]["prev"] : path[prop]["prev2"];
+                sweetAlert ({
+                    title: "Would you like to come from the right or from the left",
+                    type: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#DD6B55",
+                    confirmButtonText: "Right",
+                    cancelButtonText: "Left",
+                    closeOnConfirm: false,
+                    closeOnCancel: false },
+                    function(isConfirm) {
+                    if (isConfirm) {
+                        path[prop]["prev"] = right;
+                    }
+                    else {
+                        path[prop]["prev"] = left;
+                    }
+                })
+            }
+            if (!multipleOptions) {
+                if (path[prop]["prev"] === clickedElem.id) {
+                    //element that was jumped
+                    var jumpedElem = document.getElementById(path[prop]["jumpedPiece"]);
+                    //what type of piece was jumped
+                    var availableSpot = document.getElementById(prop); //same as trigger element
+                    //saves the class to be added to the new div
+                    var prisPiece = jumpedElem.classList.contains('red-piece') ? 'red-piece' : jumpedElem.classList.contains('red-king-piece') ? 'red-king-piece' : jumpedElem.classList.contains('black-piece') ? 'black-piece' : 'black-king-piece';
+                    //gets rid of the piece that was jumped on the board
+                    jumpedElem.classList.remove(prisPiece);
+                    //creates a new element and gives it the correct properties
+                    var prisonPiece = document.createElement('DIV');
+                    prisonPiece.classList.add(prisPiece, 'box', 'white');
+                    prisElement.appendChild(prisonPiece);
+                    jumpedElem.removeEventListener('click', giveOptions);
+                    continue;
                 }
                 else {
-                    newDiv.classList.add('red-king-piece', 'box', 'white');
-                    prisoners[0].classList.remove('red-king-piece');
+                    var jumpedElem = document.getElementById(path[prop]["jumpedPiece"]);
+                    //what type of piece was jumped
+                    var availableSpot = document.getElementById(prop); //same as trigger element
+                    //saves the class to be added to the new div
+                    var prisPiece = jumpedElem.classList.contains('red-piece') ? 'red-piece' : jumpedElem.classList.contains('red-king-piece') ? 'red-king-piece' : jumpedElem.classList.contains('black-piece') ? 'black-piece' : 'black-king-piece';
+                    //gets rid of the piece that was jumped on the board
+                    jumpedElem.classList.remove(prisPiece);
+                    //creates a new element and gives it the correct properties
+                    var prisonPiece = document.createElement('DIV');
+                    prisonPiece.classList.add(prisPiece, 'box', 'white');
+                    prisElement.appendChild(prisonPiece);
+                    jumpedElem.removeEventListener('click', giveOptions);
+                    inPrison(path[prop]["prev"], turn);
                 }
-                prisonerDiv.appendChild(newDiv); //puts the div inside the prison (now it's displayed)
-                prisoners[0].removeEventListener('click', giveOptions);
-                prisoners[0].classList.remove('red-prison-piece'); //remove that class one element at a time until they're all gone
             }
         }
-        else {
-            while (document.getElementsByClassName('black-prison-piece').length > 0) {
-                var newDiv = document.createElement('DIV');
-                if (prisoners[0].classList.contains('black-piece')) {
-                    newDiv.classList.add('black-piece', 'box', 'white');
-                    prisoners[0].classList.remove('black-piece');
-                }
-                else {
-                    newDiv.classList.add('black-king-piece', 'box', 'white');
-                    prisoners[0].classList.remove('black-king-piece');
-                }
-                prisonerDiv.appendChild(newDiv);
-                prisoners[0].removeEventListener('click', giveOptions);
-                prisoners[0].classList.remove('black-prison-piece');
-            }
-        }
+    }
+    checkForWinner('red-piece-prison', 'black-piece-prison');
+}
+function clearInnerHTML(id) {
+    for (var x = 0; x < arguments.length; x++) {
+        document.getElementById(arguments[x]).innerHTML = '';
+    }
+}
+function checkForWinner(redPrisonID, blackPrisonID) {
+    var redPrison = document.getElementById(redPrisonID);
+    var blackPrison = document.getElementById(blackPrisonID);
+    if (redPrison.childNodes.length === 12) {
+        sweetAlert({
+                title: "Congrats!",
+                text: "Black is the winner!",
+                timer: 2000,
+                showConfirmButton: false,
+                type: "success"
+            });
+        setTimeout(sweetAlertDef, 3000);
+        clearInnerHTML('game-board-container', 'red-piece-prison', 'black-piece-prison');
+        setUp();
+    }
+    else if (blackPrison.childNodes.length === 12) {
+        sweetAlert({
+            title: "Congrats!",
+            text: "Black is the winner!",
+            timer: 2000,
+            showConfirmButton: false,
+            type: "success"
+        })
+        setTimeout(sweetAlertDef, 3000);
+        clearInnerHTML('game-board-container', 'red-piece-prison', 'black-piece-prison');
+        setUp();
     }
 }
 
@@ -383,4 +534,32 @@ function checkForKing() {
         }
     }
 }
+function toggleColor() {
+    toggleTimesCalled++;
+}
+function whichAvailable(elem) {
+    return isEven(toggleTimesCalled) ? elem.classList.add('available') : elem.classList.add('available-no-show');
+}
+function sweetAlertDef() {
+    return sweetAlert ({
+        title: "Who should start the next game?",
+        type: "info",
+        showCancelButton: true,
+        confirmButtonColor: "#DD6B55",
+        confirmButtonText: "Red",
+        cancelButtonText: "Black",
+        closeOnConfirm: false,
+        closeOnCancel: false },
+        function(isConfirm) {
+        if (isConfirm) {
+            swal('Sweet!', "Red will start the game.","success");
+            turnToMove = 'red';
+        }
+        else {
+            swal("Nice!", "Black will start the game.", "success");
+            turnToMove = 'black';
+        }
+    })
+}
 // remember you just added the king part to the checkNext / giveOptions
+//I need to create a way to only get rid of the path that was eliminated when a piece jumps other pieces

@@ -3,16 +3,23 @@
     <head>
         <meta charset="utf-8">
         <link href="checkers.css" type="text/css" rel="stylesheet">
+        <link href='https://fonts.googleapis.com/css?family=Indie+Flower' rel='stylesheet' type='text/css'>
+        <link href="bower_components/bootstrap-toggle/css/bootstrap-toggle.min.css" type"text/css" rel="stylesheet">
         <link href="node_modules/sweetalert/dist/sweetalert.css" type="text/css" rel="stylesheet">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
         <title></title>
     </head>
-    <body>
+    <body id="bootstrap-overrides">
         <h1>WTA Checkers</h1>
+        <div class="centered">
+            <h2>Display Potential Jumps: </h2>
+            <input type="checkbox" checked data-toggle="toggle" data-onstyle="warning" onchange="toggleColor()">
+        </div>
         <table id="page">
             <tr>
                 <td valign="top">
                     <div id="red-side-left">
-                        <h2>Red Piece Prison</h2>
+                        <h3>Red Piece Prison</h3>
                         <div id="red-piece-prison"></div>
                     </div>
                 </td>
@@ -21,13 +28,16 @@
                 </td>
                 <td valign="top">
                     <div id="black-side-right">
-                        <h2>Black Piece Prison</h2>
+                        <h3>Black Piece Prison</h3>
                         <div id="black-piece-prison"></div>
                     </div>
                 </td>
             </tr>
         </table>
+        <script src="node_modules/sweetalert/dist/sweetalert.min.js"></script>
+        <script src="bower_components/jquery/dist/jquery.min.js"></script>
+        <script src="bower_components/bootstrap-toggle/js/bootstrap-toggle.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script src="checkers.js" type = "text/javascript"></script>
     </body>
-<script src="checkers.js" type = "text/javascript"></script>
-<script src="node_modules/sweetalert/dist/sweetalert.min.js"></script>
 </html>
